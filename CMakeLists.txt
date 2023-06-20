@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(clox_programming_language C)
+project(clox-programming-language C)
 
 set(CMAKE_C_STANDARD 11)
 
