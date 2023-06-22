@@ -11,7 +11,7 @@ void initChunk(Chunk *chunk) {
 
 void freeChunk(Chunk *chunk) {
   FREE_ARRAY(uint8_t, chunk->code, chunk->capacity);
-  FREE_ARRAY(uint32_t , chunk->lines, chunk->capacity);
+  FREE_ARRAY(uint32_t, chunk->lines, chunk->capacity);
   freeValueArray(&chunk->constants);
   initChunk(chunk);
 }
@@ -27,7 +27,7 @@ void writeChunk(Chunk *chunk, uint8_t byte, uint32_t line) {
     chunk->lines = GROW_ARRAY(
         uint32_t, chunk->lines,
         oldCapacity, chunk->capacity
-      );
+    );
   }
 
   chunk->code[chunk->count] = byte;

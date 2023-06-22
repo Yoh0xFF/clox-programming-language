@@ -3,6 +3,7 @@
 #include "value.h"
 
 static int constantInstruction(const char *name, Chunk *chunk, int offset);
+
 static int simpleInstruction(const char *name, int offset);
 
 void disassembleChunk(Chunk *chunk, const char *name) {
@@ -22,7 +23,7 @@ int disassembleInstruction(Chunk *chunk, int offset) {
     printf("%4d ", chunk->lines[offset]);
   }
 
-  uint8_t  instruction = chunk->code[offset];
+  uint8_t instruction = chunk->code[offset];
   switch (instruction) {
     case OP_CONSTANT:
       return constantInstruction("OP_CONSTANT", chunk, offset);
