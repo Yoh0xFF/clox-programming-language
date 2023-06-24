@@ -33,7 +33,6 @@ static void endCompiler();
 
 static void expression();
 
-
 bool compile(const char *source, Chunk *chunk) {
   initScanner(source);
 
