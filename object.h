@@ -6,10 +6,11 @@
 
 typedef enum {
   OBJ_STRING,
-} ObjectType;
+} ObjType;
 
 struct Obj {
-  ObjectType type;
+  ObjType type;
+  struct Obj *next;
 };
 
 struct ObjString {
@@ -18,15 +19,21 @@ struct ObjString {
   char *chars;
 };
 
-static inline bool isObjectType(Value value, ObjectType type) {
+static inline bool isObjType(Value value, ObjType type) {
   return IS_OBJ(value) && AS_OBJ(value)->type == type;
 }
 
-#define OBJECT_TYPE(value) (AS_OBJ(value)->type)
+#define OBJ_TYPE(value) (AS_OBJ(value)->type)
 
-#define IS_STRING(value) isObjectType(value, OBJ_STRING)
+#define IS_STRING(value) isObjType(value, OBJ_STRING)
 
 #define AS_STRING(value) ((ObjString *) AS_OBJ(value))
 #define AS_CSTRING(value) (((ObjString *) AS_OBJ(value))->chars)
+
+ObjString *takeString(char *chars, int length);
+
+ObjString *copyString(const char *chars, int length);
+
+void printObject(Value value);
 
 #endif
