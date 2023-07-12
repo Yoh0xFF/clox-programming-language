@@ -201,7 +201,7 @@ static Token string() {
   }
 
   if (isAtEnd()) {
-    return errorToken("Unterminated string.");
+    return errorToken("Unterminated strings.");
   }
 
   // The closing quote.
