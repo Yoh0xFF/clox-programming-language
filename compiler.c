@@ -52,6 +52,10 @@ static void advance();
 
 static void consume(TokenType type, const char *message);
 
+static bool match(TokenType type);
+
+static bool check(TokenType type);
+
 static Chunk *currentChunk();
 
 static void emitByte(uint8_t byte);
@@ -83,6 +87,16 @@ static void parsePrecedence(Precedence precedence);
 static ParseRule *getRule(TokenType type);
 
 static void expression();
+
+static void synchronize();
+
+static void declaration();
+
+static void statement();
+
+static void printStatement();
+
+static void expressionStatement();
 
 ParseRule rules[] = {
     [TOKEN_LEFT_PAREN]    = {grouping, NULL, PREC_NONE},
@@ -136,8 +150,11 @@ bool compile(const char *source, Chunk *chunk) {
   parser.hadError = false;
 
   advance();
-  expression();
-  consume(TOKEN_EOF, "Expect end of expression");
+
+  while (!match(TOKEN_EOF)) {
+    declaration();
+  }
+
   endCompiler();
   return !parser.hadError;
 }
@@ -190,6 +207,18 @@ static void consume(TokenType type, const char *message) {
   }
 
   errorAtCurrent(message);
+}
+
+static bool match(TokenType type) {
+  if (!check(type)) {
+    return false;
+  }
+  advance();
+  return true;
+}
+
+static bool check(TokenType type) {
+  return parser.current.type == type;
 }
 
 static Chunk *currentChunk() {
@@ -345,4 +374,55 @@ static ParseRule *getRule(TokenType type) {
 
 static void expression() {
   parsePrecedence(PREC_ASSIGNMENT);
+}
+
+static void synchronize() {
+  parser.panicMode = false;
+
+  while (parser.current.type != TOKEN_EOF) {
+    if (parser.current.type == TOKEN_SEMICOLON) {
+      return;
+    }
+
+    switch (parser.current.type) {
+      case TOKEN_CLASS:
+      case TOKEN_FUN:
+      case TOKEN_VAR:
+      case TOKEN_FOR:
+      case TOKEN_IF:
+      case TOKEN_WHILE:
+      case TOKEN_PRINT:
+      case TOKEN_RETURN:
+        return;
+      default:; // Do nothing.
+    }
+
+    advance();
+  }
+}
+
+static void declaration() {
+  statement();
+
+  if (parser.panicMode) {
+    synchronize();
+  }
+}
+
+static void statement() {
+  if (match(TOKEN_PRINT)) {
+    printStatement();
+  }
+}
+
+static void printStatement() {
+  expression();
+  consume(TOKEN_SEMICOLON, "Expect ';' after value.");
+  emitByte(OP_PRINT);
+}
+
+static void expressionStatement() {
+  expression();
+  consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+  emitByte(OP_POP);
 }
