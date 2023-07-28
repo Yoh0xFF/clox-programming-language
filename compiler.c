@@ -39,8 +39,22 @@ typedef struct {
   Precedence precedence;
 } ParseRule;
 
+typedef struct {
+  Token name;
+  int depth;
+} Local;
+
+typedef struct {
+  Local locals[UINT8_COUNT];
+  int localCount;
+  int scopeDepth;
+} Compiler;
+
 Parser parser;
+Compiler *current = NULL;
 Chunk *compilingChunk;
+
+static void initCompiler(Compiler *compiler);
 
 static void error(const char *message);
 
@@ -70,6 +84,10 @@ static void emitReturn();
 
 static void endCompiler();
 
+static void beginScope();
+
+static void endScope();
+
 static void binary(bool canAssign);
 
 static void literal(bool canAssign);
@@ -97,6 +115,8 @@ static uint8_t identifierConstant(Token *name);
 static void defineVariable(uint8_t global);
 
 static void expression();
+
+static void block();
 
 static void synchronize();
 
@@ -155,7 +175,8 @@ ParseRule rules[] = {
 
 bool compile(const char *source, Chunk *chunk) {
   initScanner(source);
-
+  Compiler compiler;
+  initCompiler(&compiler);
   compilingChunk = chunk;
 
   parser.panicMode = false;
@@ -169,6 +190,12 @@ bool compile(const char *source, Chunk *chunk) {
 
   endCompiler();
   return !parser.hadError;
+}
+
+static void initCompiler(Compiler *compiler) {
+  compiler->localCount = 0;
+  compiler->scopeDepth = 0;
+  current = compiler;
 }
 
 static void error(const char *message) {
@@ -271,6 +298,14 @@ static void endCompiler() {
     disassembleChunk(currentChunk(), "code");
   }
 #endif
+}
+
+static void beginScope() {
+  current->scopeDepth++;
+}
+
+static void endScope() {
+  current->scopeDepth--;
 }
 
 static void binary(bool canAssign) {
@@ -422,6 +457,14 @@ static void expression() {
   parsePrecedence(PREC_ASSIGNMENT);
 }
 
+static void block() {
+  while (!match(TOKEN_RIGHT_BRACE) && !match(TOKEN_EOF)) {
+    declaration();
+  }
+
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
+}
+
 static void synchronize() {
   parser.panicMode = false;
 
@@ -475,6 +518,10 @@ static void varDeclaration() {
 static void statement() {
   if (match(TOKEN_PRINT)) {
     printStatement();
+  } else if (match(TOKEN_LEFT_BRACE)) {
+    beginScope();
+    block();
+    endScope();
   } else {
     expressionStatement();
   }
