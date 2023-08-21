@@ -105,6 +105,8 @@ static void endScope();
 
 static void binary(bool canAssign);
 
+static void call(bool canAssign);
+
 static void literal(bool canAssign);
 
 static void grouping(bool canAssign);
@@ -139,6 +141,8 @@ static void declareVariable();
 
 static void defineVariable(uint8_t global);
 
+static uint8_t argumentList();
+
 static void and(bool canAssign);
 
 static void or(bool canAssign);
@@ -170,7 +174,7 @@ static void whileStatement();
 static void forStatement();
 
 ParseRule rules[] = {
-    [TOKEN_LEFT_PAREN]    = {grouping, NULL, PREC_NONE},
+    [TOKEN_LEFT_PAREN]    = {grouping, call, PREC_NONE},
     [TOKEN_RIGHT_PAREN]   = {NULL, NULL, PREC_NONE},
     [TOKEN_LEFT_BRACE]    = {NULL, NULL, PREC_NONE},
     [TOKEN_RIGHT_BRACE]   = {NULL, NULL, PREC_NONE},
@@ -443,6 +447,11 @@ static void binary(bool canAssign) {
   }
 }
 
+static void call(bool canAssign) {
+  uint8_t argCount = argumentList();
+  emitBytes(OP_CALL, argCount);
+}
+
 static void literal(bool canAssign) {
   switch (parser.previous.type) {
     case TOKEN_NIL:
@@ -628,6 +637,21 @@ static void defineVariable(uint8_t global) {
   }
 
   emitBytes(OP_DEFINE_GLOBAL, global);
+}
+
+static uint8_t argumentList() {
+  uint8_t argCount = 0;
+  if (!check(TOKEN_RIGHT_PAREN)) {
+    do {
+      expression();
+      if (argCount == 255) {
+        error("Can't have more than 255 arguments.");
+      }
+      argCount++;
+    } while (match(TOKEN_COMMA));
+  }
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
+  return argCount;
 }
 
 static void and(bool canAssign) {

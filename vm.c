@@ -13,6 +13,10 @@ static void resetStack();
 
 static Value peek(int distance);
 
+static bool callValue(Value callee, int argCount);
+
+static bool call(ObjFunction *function, int argCount);
+
 static bool isFalsey(Value value);
 
 static void concatenate();
@@ -41,10 +45,7 @@ InterpretResult interpret(const char *source) {
   }
 
   push(OBJ_VAL(function));
-  CallFrame *frame = &vm.frames[vm.frameCount++];
-  frame->function = function;
-  frame->ip = function->chunk.code;
-  frame->slots = vm.stack;
+  call(function, 0);
 
   InterpretResult result = run();
   pop();
@@ -68,6 +69,37 @@ static void resetStack() {
 
 static Value peek(int distance) {
   return vm.stackTop[-1 - distance];
+}
+
+static bool callValue(Value callee, int argCount) {
+  if (IS_OBJ(callee)) {
+    switch (OBJ_TYPE(callee)) {
+      case OBJ_FUNCTION:
+        return call(AS_FUNCTION(callee), argCount);
+      default:
+        break; // Non-callable object type
+    }
+  }
+  runtimeError("Can only call functions and classes.");
+  return false;
+}
+
+static bool call(ObjFunction *function, int argCount) {
+  if (argCount != function->arity) {
+    runtimeError("Expected %d arguments but got %d.", function->arity, argCount);
+    return false;
+  }
+
+  if (vm.frameCount == FRAME_MAX) {
+    runtimeError("Stack overflow.");
+    return false;
+  }
+
+  CallFrame *frame = &vm.frames[vm.frameCount - 1];
+  frame->function = function;
+  frame->ip = function->chunk.code;
+  frame->slots = vm.stackTop - argCount - 1;
+  return true;
 }
 
 static bool isFalsey(Value value) {
@@ -250,6 +282,14 @@ static InterpretResult run() {
       case OP_LOOP: {
         uint16_t offset = READ_SHORT();
         frame->ip -= offset;
+        break;
+      }
+      case OP_CALL: {
+        int argCount = READ_BYTE();
+        if (!callValue(peek(argCount), argCount)) {
+          return INTERPRET_RUNTIME_ERROR;
+        }
+        frame = &vm.frames[vm.frameCount - 1];
         break;
       }
       case OP_RETURN:
