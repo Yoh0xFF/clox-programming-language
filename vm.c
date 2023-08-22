@@ -48,7 +48,6 @@ InterpretResult interpret(const char *source) {
   call(function, 0);
 
   InterpretResult result = run();
-  pop();
   return result;
 }
 
@@ -95,7 +94,7 @@ static bool call(ObjFunction *function, int argCount) {
     return false;
   }
 
-  CallFrame *frame = &vm.frames[vm.frameCount - 1];
+  CallFrame *frame = &vm.frames[vm.frameCount++];
   frame->function = function;
   frame->ip = function->chunk.code;
   frame->slots = vm.stackTop - argCount - 1;
@@ -127,10 +126,18 @@ static void runtimeError(const char *format, ...) {
   va_end(args);
   fputs("\n", stderr);
 
-  CallFrame *frame = &vm.frames[vm.frameCount - 1];
-  size_t instruction = frame->ip - frame->function->chunk.code - 1;
-  uint32_t line = frame->function->chunk.lines[instruction];
-  fprintf(stderr, "[line %d] in script\n", line);
+  for (int i = vm.frameCount - 1; i >= 0; i--) {
+    CallFrame *frame = &vm.frames[i];
+    ObjFunction *function = frame->function;
+    size_t instruction = frame->ip - function->chunk.code - 1;
+    fprintf(stderr, "[line %d] in ", function->chunk.lines[instruction]);
+    if (function->name == NULL) {
+      fprintf(stderr, "script\n");
+    } else {
+      fprintf(stderr, "%s()\n", function->name->chars);
+    }
+  }
+
   resetStack();
 }
 
@@ -292,9 +299,19 @@ static InterpretResult run() {
         frame = &vm.frames[vm.frameCount - 1];
         break;
       }
-      case OP_RETURN:
-        // Exit interpreter.
-        return INTERPRET_OK;
+      case OP_RETURN: {
+        Value result = pop();
+        vm.frameCount--;
+        if (vm.frameCount == 0) {
+          pop();
+          return INTERPRET_OK;
+        }
+
+        vm.stackTop = frame->slots;
+        push(result);
+        frame = &vm.frames[vm.frameCount - 1];
+        break;
+      }
     }
   }
 

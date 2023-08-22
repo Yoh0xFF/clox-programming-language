@@ -165,6 +165,8 @@ static void statement();
 
 static void printStatement();
 
+static void returnStatement();
+
 static void expressionStatement();
 
 static void ifStatement();
@@ -174,7 +176,7 @@ static void whileStatement();
 static void forStatement();
 
 ParseRule rules[] = {
-    [TOKEN_LEFT_PAREN]    = {grouping, call, PREC_NONE},
+    [TOKEN_LEFT_PAREN]    = {grouping, call, PREC_CALL},
     [TOKEN_RIGHT_PAREN]   = {NULL, NULL, PREC_NONE},
     [TOKEN_LEFT_BRACE]    = {NULL, NULL, PREC_NONE},
     [TOKEN_RIGHT_BRACE]   = {NULL, NULL, PREC_NONE},
@@ -374,6 +376,7 @@ static uint8_t makeConstant(Value value) {
 }
 
 static void emitReturn() {
+  emitByte(OP_NIL);
   emitByte(OP_RETURN);
 }
 
@@ -773,6 +776,8 @@ static void statement() {
     printStatement();
   } else if (match(TOKEN_IF)) {
     ifStatement();
+  } else if (match(TOKEN_RETURN)) {
+    returnStatement();
   } else if (match(TOKEN_WHILE)) {
     whileStatement();
   } else if (match(TOKEN_FOR)) {
@@ -790,6 +795,20 @@ static void printStatement() {
   expression();
   consume(TOKEN_SEMICOLON, "Expect ';' after value.");
   emitByte(OP_PRINT);
+}
+
+static void returnStatement() {
+  if (current->type == TYPE_SCRIPT) {
+    error("Can't return from top-level code.");
+  }
+
+  if (match(TOKEN_SEMICOLON)) {
+    emitReturn();
+  } else {
+    expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
+    emitByte(OP_RETURN);
+  }
 }
 
 static void expressionStatement() {
