@@ -17,6 +17,12 @@ static uint32_t hashString(const char *key, int length);
 
 static void printFunction(ObjFunction *function);
 
+ObjClosure *newClosure(ObjFunction *function) {
+  ObjClosure *closure = ALLOCATE_OBJ(ObjClosure, OBJ_CLOSURE);
+  closure->function = function;
+  return closure;
+}
+
 ObjFunction  *newFunction() {
   ObjFunction *function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
   function->arity = 0;
@@ -59,6 +65,9 @@ ObjString *copyString(const char *chars, int length) {
 
 void printObject(Value value) {
   switch (OBJ_TYPE(value)) {
+    case OBJ_CLOSURE:
+      printFunction(AS_CLOSURE(value)->function);
+      break;
     case OBJ_FUNCTION:
       printFunction(AS_FUNCTION(value));
       break;
