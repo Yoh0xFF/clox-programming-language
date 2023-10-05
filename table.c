@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "object.h"
 #include "memory.h"
+#include "object.h"
 #include "table.h"
 #include "value.h"
 
@@ -80,7 +80,8 @@ void tableAddAll(Table *from, Table *to) {
   }
 }
 
-ObjString *tableFindString(Table *table, const char *chars, int length, uint32_t hash) {
+ObjString *tableFindString(Table *table, const char *chars, int length,
+                           uint32_t hash) {
   if (table->count == 0) {
     return NULL;
   }
@@ -93,14 +94,21 @@ ObjString *tableFindString(Table *table, const char *chars, int length, uint32_t
       if (IS_NIL(entry->value)) {
         return NULL;
       }
-    } else if (entry->key->length == length &&
-               entry->key->hash == hash &&
+    } else if (entry->key->length == length && entry->key->hash == hash &&
                memcmp(entry->key->chars, chars, length) == 0) {
       // We found it.
       return entry->key;
     }
 
     index = (index + 1) % table->capacity;
+  }
+}
+
+void markTable(Table *table) {
+  for (int i = 0; i < table->capacity; i++) {
+    Entry *entry = &table->entries[i];
+    markObject((Obj *)entry->key);
+    markValue(entry->value);
   }
 }
 

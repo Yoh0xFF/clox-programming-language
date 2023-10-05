@@ -6,8 +6,8 @@
 #include "value.h"
 #include "vm.h"
 
-#define ALLOCATE_OBJ(type, objType) \
-  (type *) allocateObject(sizeof(type), objType)
+#define ALLOCATE_OBJ(type, objType)                                            \
+  (type *)allocateObject(sizeof(type), objType)
 
 static Obj *allocateObject(size_t size, ObjType type);
 
@@ -30,7 +30,7 @@ ObjClosure *newClosure(ObjFunction *function) {
   return closure;
 }
 
-ObjFunction  *newFunction() {
+ObjFunction *newFunction() {
   ObjFunction *function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
   function->arity = 0;
   function->upvalueCount = 0;
@@ -81,31 +81,36 @@ ObjUpvalue *newUpvalue(Value *slot) {
 
 void printObject(Value value) {
   switch (OBJ_TYPE(value)) {
-    case OBJ_CLOSURE:
-      printFunction(AS_CLOSURE(value)->function);
-      break;
-    case OBJ_FUNCTION:
-      printFunction(AS_FUNCTION(value));
-      break;
-    case OBJ_NATIVE:
-      printf("<native fn>");
-      break;
-    case OBJ_STRING:
-      printf("%s", AS_CSTRING(value));
-      break;
-    case OBJ_UPVALUE:
-      printf("upvalue");
-      break;
+  case OBJ_CLOSURE:
+    printFunction(AS_CLOSURE(value)->function);
+    break;
+  case OBJ_FUNCTION:
+    printFunction(AS_FUNCTION(value));
+    break;
+  case OBJ_NATIVE:
+    printf("<native fn>");
+    break;
+  case OBJ_STRING:
+    printf("%s", AS_CSTRING(value));
+    break;
+  case OBJ_UPVALUE:
+    printf("upvalue");
+    break;
   }
 }
 
 static Obj *allocateObject(size_t size, ObjType type) {
-  Obj *object = (Obj *) reallocate(NULL, 0, size);
+  Obj *object = (Obj *)reallocate(NULL, 0, size);
 
   object->type = type;
+  object->isMarked = false;
 
   object->next = vm.objects;
   vm.objects = object;
+
+#ifdef DEBUG_LOG_GC
+  printf("%p allocate %zu for %d\n", (void *)object, size, type);
+#endif
 
   return object;
 }
@@ -123,7 +128,7 @@ static uint32_t hashString(const char *key, int length) {
   // Implementation of the "FNV-1a" hash function.
   uint32_t hash = 2166136261u;
   for (int i = 0; i < length; i++) {
-    hash ^= (uint8_t) key[i];
+    hash ^= (uint8_t)key[i];
     hash *= 16777619;
   }
   return hash;
