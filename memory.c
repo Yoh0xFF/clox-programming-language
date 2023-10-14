@@ -1,6 +1,8 @@
 #include <stdlib.h>
 
+#include "compiler.h"
 #include "memory.h"
+#include "object.h"
 #include "table.h"
 #include "value.h"
 #include "vm.h"
@@ -111,5 +113,15 @@ static void markRoots() {
     markValue(*slot);
   }
 
+  for (int i = 0; i < vm.frameCount; i++) {
+    markObject((Obj *)vm.frames[i].closure);
+  }
+
+  for (ObjUpvalue *upvalue = vm.openUpvalues; upvalue != NULL;
+       upvalue = upvalue->next) {
+    markObject((Obj *)upvalue);
+  }
+
   markTable(&vm.globals);
+  markCompilerRoots();
 }
