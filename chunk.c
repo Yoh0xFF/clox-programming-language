@@ -1,5 +1,6 @@
 #include "chunk.h"
 #include "memory.h"
+#include "vm.h"
 
 void initChunk(Chunk *chunk) {
   chunk->count = 0;
@@ -20,14 +21,10 @@ void writeChunk(Chunk *chunk, uint8_t byte, uint32_t line) {
   if (chunk->capacity < chunk->count + 1) {
     int oldCapacity = chunk->capacity;
     chunk->capacity = GROW_CAPACITY(oldCapacity);
-    chunk->code = GROW_ARRAY(
-        uint8_t, chunk->code,
-        oldCapacity, chunk->capacity
-    );
-    chunk->lines = GROW_ARRAY(
-        uint32_t, chunk->lines,
-        oldCapacity, chunk->capacity
-    );
+    chunk->code =
+        GROW_ARRAY(uint8_t, chunk->code, oldCapacity, chunk->capacity);
+    chunk->lines =
+        GROW_ARRAY(uint32_t, chunk->lines, oldCapacity, chunk->capacity);
   }
 
   chunk->code[chunk->count] = byte;
@@ -36,6 +33,8 @@ void writeChunk(Chunk *chunk, uint8_t byte, uint32_t line) {
 }
 
 int addConstant(Chunk *chunk, Value value) {
+  push(value);
   writeValueArray(&chunk->constants, value);
+  pop();
   return chunk->constants.count - 1;
 }
