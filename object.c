@@ -135,6 +135,10 @@ static uint32_t hashString(const char *key, int length) {
 }
 
 static void printFunction(ObjFunction *function) {
+  if (function == NULL) {
+    printf("<NULL>");
+    return;
+  }
   if (function->name == NULL) {
     printf("<script>");
     return;

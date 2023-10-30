@@ -19,6 +19,8 @@ static void traceReferences();
 
 static void blackenObject(Obj *object);
 
+static void sweep();
+
 void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
   if (newSize > oldSize) {
 #ifdef DEBUG_STRESS_GC
@@ -45,6 +47,8 @@ void collectGarbage() {
 
   markRoots();
   traceReferences();
+  tableRemoveWhite(&vm.strings);
+  sweep();
 
 #ifdef DEBUG_LOG_GC
   printf("-- gc end\n");
@@ -186,5 +190,29 @@ static void blackenObject(Obj *object) {
   case OBJ_NATIVE:
   case OBJ_STRING:
     break;
+  }
+}
+
+static void sweep() {
+  Obj *previous = NULL;
+  Obj *object = vm.objects;
+
+  while (object != NULL) {
+    if (object->isMarked) {
+      object->isMarked = false;
+      previous = object;
+      object = object->next;
+    } else {
+      Obj *unreached = object;
+      object = object->next;
+
+      if (previous != NULL) {
+        previous->next = object;
+      } else {
+        vm.objects = object;
+      }
+
+      freeObject(unreached);
+    }
   }
 }
