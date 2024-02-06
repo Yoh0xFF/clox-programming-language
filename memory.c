@@ -125,6 +125,9 @@ static void freeObject(Obj *object) {
 #endif
 
   switch (object->type) {
+  case OBJ_BOUND_METHOD:
+    FREE(ObjBoundMethod, object);
+    break;
   case OBJ_CLASS: {
     ObjClass *klass = (ObjClass *) object;
     freeTable(&klass->methods);
@@ -197,6 +200,12 @@ static void blackenObject(Obj *object) {
 #endif
 
   switch (object->type) {
+  case OBJ_BOUND_METHOD: {
+    ObjBoundMethod *boundMethod = (ObjBoundMethod *) object;
+    markValue(boundMethod->receiver);
+    markObject((Obj *) boundMethod->method);
+    break;
+  }
   case OBJ_CLASS: {
     ObjClass *klass = (ObjClass *) object;
     markObject((Obj *) klass->name);
