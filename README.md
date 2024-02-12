@@ -1,6 +1,6 @@
 # CLox Programming Language
 
-This project is written following the first part of the [Crafting Interpreters](https://craftinginterpreters.com/contents.html) book.
+This project is written following the second part of the [Crafting Interpreters](https://craftinginterpreters.com/contents.html) book.
 
 It demonstrates how to implement the following concepts:
 
